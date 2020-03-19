@@ -46,7 +46,7 @@ fi
 
 ## this will help us create the database model
 psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
-DROP TABLE IF EXISTS model, model_versions, image, dataset;
+DROP TABLE IF EXISTS model, model_versions, image, dataset, jobs;
 OMG
 echo "NOTICE:  finish deleting tables."
 psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
@@ -92,12 +92,14 @@ CREATE TABLE dataset (
 	name TEXT,
 	bands TEXT,
 	rgb_bands TEXT,
-	provider TEXT
-	
-	
-	
-	
-);
+	provider TEXT);
+CREATE TABLE jobs (
+	id serial PRIMARY KEY,
+	status TEXT,
+	params JSONB);
+INSERT INTO jobs(status, params)
+VALUES
+   ('start', '{"testkey":"vallss"}'::jsonb);
 OMG
 echo "NOTICE:  finish creating tables."
 for NAME in ${TABLES}; do
