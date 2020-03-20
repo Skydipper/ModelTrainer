@@ -32,7 +32,7 @@ services:
       - "3055:8793"
     command: webserver
     healthcheck:
-      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid]"]
       interval: 30s
       timeout: 30s
       retries: 3
@@ -45,7 +45,6 @@ services:
     command: develop
     volumes:
       - ./api/GeoTrainer:/api/GeoTrainer
-      - ./airflow_files/dags:/api/output
     depends_on:
     - postgres
 
