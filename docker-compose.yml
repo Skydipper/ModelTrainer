@@ -8,7 +8,7 @@ services:
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
     ports:
-      - "5432:5432"
+      - "3052:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./api/data:/data_import 
@@ -27,9 +27,9 @@ services:
       - ./airflow_files/packages:/usr/local/airflow/packages
       - ./airflow_files/plugins:/usr/local/airflow/plugins
     ports:
-      - "8080:8080"
-      - "5555:5555"
-      - "8793:8793"
+      - "3053:8080"
+      - "3054:5555"
+      - "3055:8793"
     command: webserver
     healthcheck:
       test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
@@ -41,7 +41,7 @@ services:
     container_name: 'geotrainer'
     build: ./api
     ports:
-      - "6767:6767"
+      - "3056:6767"
     command: develop
     volumes:
       - ./api/GeoTrainer:/api/GeoTrainer
