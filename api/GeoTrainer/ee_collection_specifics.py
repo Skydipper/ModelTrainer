@@ -51,6 +51,36 @@ def ee_bands_rgb(collection):
     
     return dic[collection]
 
+def ee_dates(collection):
+    """
+    Earth Engine date ranges
+    """
+    dic = {
+        'Sentinel-2-Top-of-Atmosphere-Reflectance': ['2015-06-23', ''],
+        'Landsat-7-Surface-Reflectance': ['1999-01-01', ''],
+        'Landsat-8-Surface-Reflectance': ['2013-04-01', ''],
+        'USDA-NASS-Cropland-Data-Layers': ['1997-01-01', ''],
+        'USGS-National-Land-Cover-Database': ['1992-01-01', '2017-01-01'],
+        'Lake-Water-Quality-100m': ['2019-01-01', '2019-12-31']
+    }
+    
+    return dic[collection]
+
+def ee_coverage(collection):
+    """
+    Earth Engine area coverage
+    """
+    dic = {
+        'Sentinel-2-Top-of-Atmosphere-Reflectance': "global",
+        'Landsat-7-Surface-Reflectance': "global",
+        'Landsat-8-Surface-Reflectance': "global",
+        'USDA-NASS-Cropland-Data-Layers': "region",
+        'USGS-National-Land-Cover-Database': "region",
+        'Lake-Water-Quality-100m': "region"
+    }
+    
+    return dic[collection]
+
 def ee_bands_normThreshold(collection):
     """
     Normalization threshold percentage

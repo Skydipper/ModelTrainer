@@ -7,7 +7,7 @@ import logging
 #from google.auth import app_engine
 import ee
 
-from GeoTrainer.services import Database, predict
+from GeoTrainer.services import Database, predict, add_range_bbox
 from GeoTrainer.middleware import parse_payload, sanitize_parameters, get_geo_by_hash
 from GeoTrainer.validators import validate_prediction_params
 from GeoTrainer.errors import error
@@ -75,9 +75,9 @@ setup_ee()
 ################################################################################
 # Routes handle with Blueprint is allways a good idea
 ################################################################################
-geoPredictor = Blueprint('geoPredictor', __name__)
+geoTrainer = Blueprint('geoTrainer', __name__)
 
-@geoPredictor.route('/model',  strict_slashes=False, methods=['GET'])
+@geoTrainer.route('/model',  strict_slashes=False, methods=['GET'])
 def get_models():
     # Receive a payload and post it to DB to get all models. No pagination or filtering capabilities applied yet
     try:
@@ -98,18 +98,20 @@ def get_models():
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoPredictor.route('/dataset',  strict_slashes=False, methods=['GET'])
+@geoTrainer.route('/dataset',  strict_slashes=False, methods=['GET'])
 def get_datasets():
     # Receive a payload and post it to DB to get all models. No pagination or filtering capabilities applied yet
     try:
         db = Database()
         query = """
-        SELECT  dataset.slug, dataset.name, dataset.bands, dataset.rgb_bands, dataset.provider, image.bands_selections, image.scale, image.bands_min_max
-		FROM image 
-		INNER JOIN dataset ON image.dataset_id=dataset.id 
+        SELECT  dataset.slug, dataset.name, dataset.bands, dataset.rgb_bands, dataset.provider
+		FROM dataset 
         """
         result = db.Query(query)
         app.logger.debug(result)
+
+        result = add_range_bbox(result)
+        logging.debug(f'[DATASET result]: {result}')
         # function to post schema
         return jsonify(
             {'data': result}
@@ -117,7 +119,7 @@ def get_datasets():
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoPredictor.route('/model/<model_name>',  strict_slashes=False, methods=['GET', 'POST'])
+@geoTrainer.route('/model/<model_name>',  strict_slashes=False, methods=['GET', 'POST'])
 @sanitize_parameters
 @validate_prediction_params
 @get_geo_by_hash
@@ -136,7 +138,7 @@ def get_prediction(**kwargs):
     }), 200
 
 # Routing
-app.register_blueprint(geoPredictor, url_prefix='/api/v1/geopredictor')
+app.register_blueprint(geoTrainer, url_prefix='/api/v1/geotrainer')
 
 ################################################################################
 # CT Registering

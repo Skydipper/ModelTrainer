@@ -50,6 +50,27 @@ class Database():
 			
 		return output
 
+#add temporal ranges and bbox to each dataset
+def add_range_bbox(results):
+	new_results = []
+	for result in results:
+	    slug = result.get('slug')
+	    # Add temporal range
+	    result['temporal_range'] = ee_collection_specifics.ee_dates(slug)
+	    if ee_collection_specifics.ee_coverage(slug) == 'global':
+	        image = ee.ImageCollection(ee_collection_specifics.ee_collections(slug)).mean()
+	    else:
+	        image = ee.ImageCollection(ee_collection_specifics.ee_collections(slug))
+	    bbox = image.geometry().bounds().getInfo().get('coordinates')[0]
+	    bounds = [bbox[0][::-1], bbox[2][::-1]]
+	
+	    result['bbox'] = bbox
+	    result['bounds'] = bounds
+	
+	    new_results.append(result)
+
+	return new_results
+
 #normalize
 def normalize_ee_images(image, collection, values):
 	
