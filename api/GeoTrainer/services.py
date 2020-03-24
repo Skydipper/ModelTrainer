@@ -5,7 +5,7 @@ import logging
 import os
 import json
 from sqlalchemy import create_engine
-from CTRegisterMicroserviceFlask import request_to_microservice
+import numpy as np
 
 from GeoTrainer import ee_collection_specifics
 from GeoTrainer.errors import GeostoreNotFound, error, ModelError, Error
@@ -57,6 +57,8 @@ def add_range_bbox(results):
 	    slug = result.get('slug')
 	    # Add temporal range
 	    result['temporal_range'] = ee_collection_specifics.ee_dates(slug)
+
+		# Add bbox and bounds
 	    if ee_collection_specifics.ee_coverage(slug) == 'global':
 	        image = ee.ImageCollection(ee_collection_specifics.ee_collections(slug)).mean()
 	    else:
@@ -70,6 +72,161 @@ def add_range_bbox(results):
 	    new_results.append(result)
 
 	return new_results
+
+class Preprocessing():
+    def __init__(self):
+        self.EE_TILES = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'
+
+    def composite(self, **kwargs):
+        self.dataset_names = kwargs['sanitized_params']['dataset_names']
+        self.slugs = list(map(lambda x: x.strip(), self.dataset_names.split(','))) 
+        self.init_date = kwargs['sanitized_params']['init_date']
+        self.end_date = kwargs['sanitized_params']['end_date']
+
+        images = []
+        for slug in self.slugs:
+            composite = ee_collection_specifics.Composite(slug)(self.init_date, self.end_date)
+            mapid = composite.getMapId(ee_collection_specifics.vizz_params_rgb(slug))
+            images.append(self.EE_TILES.format(**mapid))
+    
+        result = {
+            'input_image': images[0],
+            'output_image': images[1]
+            }
+
+        return result
+
+    def normalize_images(self, **kwargs):
+        self.dataset_names = kwargs['sanitized_params']['dataset_names']
+        self.slugs = list(map(lambda x: x.strip(), self.dataset_names.split(','))) 
+        self.init_date = kwargs['sanitized_params']['init_date']
+        self.end_date = kwargs['sanitized_params']['end_date']
+        self.geostore = kwargs['sanitized_params']['geojson']
+        self.norm_type = kwargs['sanitized_params']['norm_type']
+        self.input_scale = kwargs['sanitized_params']['init_date']
+        self.output_scale = kwargs['sanitized_params']['end_date']
+
+        scales = [ee_collection_specifics.ee_scales(slug) for slug in self.slugs]
+        self.scale = max(scales)
+
+        norm_bands = {}
+        for n, slug in enumerate(self.slugs):
+            if n == 0:
+                bands_type = 'input_bands'
+            else:
+                bands_type = 'output_bands'
+
+            # Get normalization values
+            value = json.loads(self.get_normalization_values(slug))
+    
+            # Create composite
+            image = ee_collection_specifics.Composite(slug)(self.init_date, self.end_date)
+    
+            # Normalize images
+            if bool(value): 
+                image = normalize_ee_images(image, slug, value)
+
+            urls_dic = {}
+            for params in ee_collection_specifics.vizz_params(slug):
+                mapid = image.getMapId(params)
+                tiles_url = self.EE_TILES.format(**mapid)
+    
+                urls_dic[str(params['bands'])] = tiles_url
+
+            norm_bands[bands_type] = urls_dic
+			
+        result = {
+            'norm_bands': norm_bands
+            }
+
+        return result
+
+    def get_normalization_values(self, slug):
+        """
+        Get normalization values
+        """
+        # Create composite
+        image = ee_collection_specifics.Composite(slug)(self.init_date, self.end_date)
+
+        bands = ee_collection_specifics.ee_bands(slug)
+        image = image.select(bands)
+
+        if ee_collection_specifics.normalize(slug):
+            # Get min/man values for each band
+            if (self.norm_type == 'geostore'):
+                if hasattr(self, 'geostore'):
+                    value = min_max_values(image, slug, self.scale, norm_type=self.norm_type, geostore=self.geostore)
+                else:
+                    raise ValueError(f"Missing geojson attribute.")
+            else:
+                value = min_max_values(image, slug, self.scale, norm_type=self.norm_type)
+        else:
+            value = {}
+
+        return json.dumps(value)
+
+def min_max_values(image, collection, scale, norm_type='global', geostore=None, values = {}):
+    
+    normThreshold = ee_collection_specifics.ee_bands_normThreshold(collection)
+    
+    if not norm_type == 'custom':
+        if norm_type == 'global':
+            num = 2
+            lon = np.linspace(-180, 180, num)
+            lat = np.linspace(-90, 90, num)
+            
+            features = []
+            for i in range(len(lon)-1):
+                for j in range(len(lat)-1):
+                    features.append(ee.Feature(ee.Geometry.Rectangle(lon[i], lat[j], lon[i+1], lat[j+1])))
+        
+        if norm_type == 'geostore':
+            try:
+                #geostore = Skydipper.Geometry(id_hash=geostore_id)
+                features = []
+                for feature in geostore.get('geojson').get('features'):
+                    features.append(ee.Feature(feature))
+                
+            except:
+                print('Geostore is needed')
+        
+        regReducer = {
+            'geometry': ee.FeatureCollection(features),
+            'reducer': ee.Reducer.minMax(),
+            'maxPixels': 1e10,
+            'bestEffort': True,
+            'scale':scale,
+            'tileScale': 10
+            
+        }
+        
+        values = image.reduceRegion(**regReducer).getInfo()
+        
+        # Avoid outliers by taking into account only the normThreshold% of the data points.
+        regReducer = {
+            'geometry': ee.FeatureCollection(features),
+            'reducer': ee.Reducer.histogram(),
+            'maxPixels': 1e10,
+            'bestEffort': True,
+            'scale':scale,
+            'tileScale': 10
+            
+        }
+        
+        hist = image.reduceRegion(**regReducer).getInfo()
+    
+        for band in list(normThreshold.keys()):
+            if normThreshold[band] != 100:
+                count = np.array(hist.get(band).get('histogram'))
+                x = np.array(hist.get(band).get('bucketMeans'))
+            
+                cumulative_per = np.cumsum(count/count.sum()*100)
+            
+                values[band+'_max'] = x[np.where(cumulative_per < normThreshold[band])][-1]
+    else:
+        values = values
+        
+    return values
 
 #normalize
 def normalize_ee_images(image, collection, values):

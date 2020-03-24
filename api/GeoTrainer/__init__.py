@@ -5,11 +5,11 @@ import asyncio
 import CTRegisterMicroserviceFlask
 import logging
 #from google.auth import app_engine
-import ee
+import ee 
 
-from GeoTrainer.services import Database, predict, add_range_bbox
+from GeoTrainer.services import Database, Preprocessing, predict, add_range_bbox
 from GeoTrainer.middleware import parse_payload, sanitize_parameters, get_geo_by_hash
-from GeoTrainer.validators import validate_prediction_params
+from GeoTrainer.validators import validate_prediction_params, validate_composites_params
 from GeoTrainer.errors import error
 
 
@@ -77,6 +77,54 @@ setup_ee()
 ################################################################################
 geoTrainer = Blueprint('geoTrainer', __name__)
 
+@geoTrainer.route('/dataset',  strict_slashes=False, methods=['GET'])
+def get_datasets():
+    # Receive a payload and post it to DB to get all models. No pagination or filtering capabilities applied yet
+    try:
+        db = Database()
+        query = """
+        SELECT  dataset.slug, dataset.name, dataset.bands, dataset.rgb_bands, dataset.provider
+		FROM dataset 
+        """
+        result = db.Query(query)
+        app.logger.debug(result)
+        
+        # Add temporal range, bbox, and bounds
+        result = add_range_bbox(result)
+        # function to post schema
+        return jsonify(
+            {'data': result}
+        ), 200
+    except Exception as err:
+            return error(status=502, detail=f'{err}')
+
+@geoTrainer.route('/composites/<dataset_names>',  strict_slashes=False, methods=['GET', 'POST'])
+@sanitize_parameters
+@validate_composites_params
+def get_composites(**kwargs):
+    try:
+        pp = Preprocessing()
+        result = pp.composite(**kwargs)
+        return jsonify(
+            {'data': result}
+        ), 200
+    except Exception as err:
+            return error(status=502, detail=f'{err}')
+
+@geoTrainer.route('/normalize/<dataset_names>',  strict_slashes=False, methods=['GET', 'POST'])
+@sanitize_parameters
+@validate_composites_params
+def get_normalized_bands(**kwargs):
+    try:
+        pp = Preprocessing()
+        result = pp.normalize_images(**kwargs)
+        return jsonify(
+            {'data': result}
+        ), 200
+    except Exception as err:
+            return error(status=502, detail=f'{err}')
+
+
 @geoTrainer.route('/model',  strict_slashes=False, methods=['GET'])
 def get_models():
     # Receive a payload and post it to DB to get all models. No pagination or filtering capabilities applied yet
@@ -91,27 +139,6 @@ def get_models():
         """
         result = db.Query(query)
         app.logger.debug(result)
-        # function to post schema
-        return jsonify(
-            {'data': result}
-        ), 200
-    except Exception as err:
-            return error(status=502, detail=f'{err}')
-
-@geoTrainer.route('/dataset',  strict_slashes=False, methods=['GET'])
-def get_datasets():
-    # Receive a payload and post it to DB to get all models. No pagination or filtering capabilities applied yet
-    try:
-        db = Database()
-        query = """
-        SELECT  dataset.slug, dataset.name, dataset.bands, dataset.rgb_bands, dataset.provider
-		FROM dataset 
-        """
-        result = db.Query(query)
-        app.logger.debug(result)
-
-        result = add_range_bbox(result)
-        logging.debug(f'[DATASET result]: {result}')
         # function to post schema
         return jsonify(
             {'data': result}

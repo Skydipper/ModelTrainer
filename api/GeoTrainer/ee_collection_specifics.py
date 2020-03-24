@@ -51,6 +51,21 @@ def ee_bands_rgb(collection):
     
     return dic[collection]
 
+def ee_scales(collection):
+    """
+    Earth Engine date ranges
+    """
+    dic = {
+        'Sentinel-2-Top-of-Atmosphere-Reflectance': 10,
+        'Landsat-7-Surface-Reflectance': 30,
+        'Landsat-8-Surface-Reflectance': 30,
+        'USDA-NASS-Cropland-Data-Layers': 30,
+        'USGS-National-Land-Cover-Database': 30,
+        'Lake-Water-Quality-100m': 100
+    }
+    
+    return dic[collection]
+
 def ee_dates(collection):
     """
     Earth Engine date ranges

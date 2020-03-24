@@ -10,21 +10,29 @@
 			}
 		},
 		{
+			"path": "/v1/geotrainer/composites",
+			"method": "GET",
+			"redirect": {
+				"method": "GET",
+				"path": "/api/v1/geotrainer/composites"
+			}
+		},
+		{
+			"path": "/v1/geotrainer/normalize",
+			"method": "GET",
+			"redirect": {
+				"method": "GET",
+				"path": "/api/v1/geotrainer/normalize"
+			}
+		},
+		{
 			"path": "/v1/geotrainer/model",
 			"method": "GET",
 			"redirect": {
 				"method": "GET",
 				"path": "/api/v1/geotrainer/model"
 			}
-		},
-		{
-			"path": "/v1/geotrainer/model",
-			"method": "POST",
-			"redirect": {
-				"method": "POST",
-				"path": "/api/v1/geotrainer/model"
-			}
-		},
+		}
 		{
 			"path": "/v1/geotrainer/model/:model_name",
 			"method": "POST",
