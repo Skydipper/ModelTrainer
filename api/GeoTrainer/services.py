@@ -6,6 +6,7 @@ import os
 import json
 from sqlalchemy import create_engine
 import numpy as np
+import pandas as pd
 
 from GeoTrainer import ee_collection_specifics
 from GeoTrainer.errors import GeostoreNotFound, error, ModelError, Error
@@ -36,19 +37,36 @@ class GeostoreService(object):
 
 #database connexion class
 class Database():
-	DBURL=os.getenv('POSTGRES_CONNECTION')
-	logging.info(f"DB URL: {DBURL}")
-	engine = create_engine(DBURL)
-	def __init__(self):
-		self.connection = self.engine.connect()
-		logging.info("DB Instance created")
-	
-	def Query(self, query):
-		logging.debug(f"{query}")
-		fetchQuery = self.connection.execute(f"{query}")
-		output = [{column: value for column, value in rowproxy.items()} for rowproxy in fetchQuery]
-			
-		return output
+    DBURL=os.getenv('POSTGRES_CONNECTION')
+    logging.info(f"DB URL: {DBURL}")
+    engine = create_engine(DBURL)
+    def __init__(self):
+        self.connection = self.engine.connect()
+        logging.info("DB Instance created")
+    
+    def Query(self, query):
+        logging.debug(f"{query}")
+        fetchQuery = self.connection.execute(f"{query}")
+        output = [{column: value for column, value in rowproxy.items()} for rowproxy in fetchQuery]
+
+        return output
+    
+    def df_from_query(self, table_name):
+        """Read DataFrames from query"""
+        queries = {
+            "dataset": "SELECT * FROM dataset",
+            "image": "SELECT * FROM image",
+            "model": "SELECT * FROM model",
+            "model_versions": "SELECT * FROM model_versions",
+        } 
+        
+        try:
+            if table_name in queries.keys():
+                df = pd.read_sql(queries.get(table_name), con=self.engine).drop(columns='id')
+                
+            return df
+        except:
+            print("Table doesn't exist in database!") 
 
 #add temporal ranges and bbox to each dataset
 def add_range_bbox(results):
@@ -109,15 +127,33 @@ class Preprocessing():
         scales = [ee_collection_specifics.ee_scales(slug) for slug in self.slugs]
         self.scale = max(scales)
 
+        db = Database()
+        self.datasets = db.df_from_query('dataset')
+        self.images = db.df_from_query('image')
+        self.images = self.images.astype({'init_date': 'str', 'end_date': 'str'})
+
         norm_bands = {}
         for n, slug in enumerate(self.slugs):
+            dataset_id = self.datasets[self.datasets['slug'] == slug].index[0]
+
+            logging.debug(f"[NORMALIZE dataset_id:]{dataset_id}")
+
             if n == 0:
                 bands_type = 'input_bands'
             else:
                 bands_type = 'output_bands'
 
             # Get normalization values
-            value = json.loads(self.get_normalization_values(slug))
+            #check if normalization values exists in table
+            if self.norm_type == 'global':
+                condition = self.images[['dataset_id', 'scale', 'init_date', 'end_date', 'norm_type']]\
+                                .isin([dataset_id, self.scale, self.init_date, self.end_date, self.norm_type]).all(axis=1)
+                if condition.any():
+                    value = self.images[condition]['bands_min_max'].iloc[0]
+                else:
+                    value = json.loads(self.get_normalization_values(slug))
+            else:
+                value = json.loads(self.get_normalization_values(slug))
     
             # Create composite
             image = ee_collection_specifics.Composite(slug)(self.init_date, self.end_date)
@@ -134,7 +170,7 @@ class Preprocessing():
                 urls_dic[str(params['bands'])] = tiles_url
 
             norm_bands[bands_type] = urls_dic
-			
+
         result = {
             'norm_bands': norm_bands
             }
