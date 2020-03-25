@@ -35,7 +35,7 @@ You will need to connect to the postgres container. To do so:
 `cd /data_import`
 `sh import_data.sh`
 To enter to do queries on the db `psql -U airflow -h localhost geopredictor`
-To export the DB: `pg_dump -U postgres geopredictor > geopredictor.pgsql`
+To export the DB: `pg_dump -U airflow geopredictor > geopredictor.pgsql`
 ## Tests
 TODO
 
