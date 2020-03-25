@@ -7,7 +7,7 @@ import logging
 #from google.auth import app_engine
 import ee 
 
-from GeoTrainer.services import Database, Preprocessing, predict, add_range_bbox
+from GeoTrainer.services import Database, Preprocessing, add_range_bbox
 from GeoTrainer.middleware import parse_payload, sanitize_parameters, get_geo_by_hash
 from GeoTrainer.validators import validate_prediction_params, validate_composites_params
 from GeoTrainer.errors import error
@@ -98,7 +98,7 @@ def get_datasets():
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoTrainer.route('/composites/<dataset_names>',  strict_slashes=False, methods=['GET', 'POST'])
+@geoTrainer.route('/composites/<dataset_names>',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
 @validate_composites_params
 def get_composites(**kwargs):
@@ -111,7 +111,7 @@ def get_composites(**kwargs):
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoTrainer.route('/normalize/<dataset_names>',  strict_slashes=False, methods=['GET', 'POST'])
+@geoTrainer.route('/normalize/<dataset_names>',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
 @validate_composites_params
 def get_normalized_bands(**kwargs):
@@ -124,45 +124,44 @@ def get_normalized_bands(**kwargs):
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-
-@geoTrainer.route('/model',  strict_slashes=False, methods=['GET'])
-def get_models():
-    # Receive a payload and post it to DB to get all models. No pagination or filtering capabilities applied yet
+@geoTrainer.route('/airflow/<dataset_names>',  strict_slashes=False, methods=['GET'])
+@sanitize_parameters
+@validate_composites_params
+def get_airflow_dags(**kwargs):
     try:
-        db = Database()
-        query = """
-        SELECT model.model_name, model_type, model_output, model_description, model_versions.version as version, model_versions.model_architecture, model_versions.training_params->>'tb_url' as tb_url
-        FROM model 
-        INNER JOIN model_versions ON model.id=model_versions.model_id
-        WHERE deployed is true
-        ORDER BY model_name ASC, version ASC 
-        """
-        result = db.Query(query)
-        app.logger.debug(result)
-        # function to post schema
+        dataset_names = list(map(lambda x: x.strip(), kwargs['sanitized_params']['dataset_names'].split(','))) 
+        init_date = kwargs['sanitized_params']['init_date']
+        end_date = kwargs['sanitized_params']['end_date']
+        geostore = kwargs['sanitized_params']['geojson']
+        norm_type = kwargs['sanitized_params']['norm_type']
+        input_bands = list(map(lambda x: x.strip(), kwargs['sanitized_params']['input_bands'].split(','))) 
+        output_bands = list(map(lambda x: x.strip(), kwargs['sanitized_params']['output_bands'].split(','))) 
+        input_type = kwargs['sanitized_params']['input_type']
+        model_type = kwargs['sanitized_params']['model_type']
+        model_output = kwargs['sanitized_params']['model_output']
+        batch_size = kwargs['sanitized_params']['batch_size']
+        epochs = kwargs['sanitized_params']['epochs']
+
+        result = {
+            'dataset_names': list(map(lambda x: x.strip(), kwargs['sanitized_params']['dataset_names'].split(','))),
+            'init_date': kwargs['sanitized_params']['init_date'],
+            'end_date': kwargs['sanitized_params']['end_date'],
+            'geostore': kwargs['sanitized_params']['geojson'], 
+            'norm_type': kwargs['sanitized_params']['norm_type'],
+            'input_bands': list(map(lambda x: x.strip(), kwargs['sanitized_params']['input_bands'].split(','))),
+            'output_bands': list(map(lambda x: x.strip(), kwargs['sanitized_params']['output_bands'].split(','))),
+            'input_type': kwargs['sanitized_params']['input_type'],
+            'model_type': kwargs['sanitized_params']['model_type'],
+            'model_output': kwargs['sanitized_params']['model_output'],
+            'batch_size': kwargs['sanitized_params']['batch_size'],
+            'epochs': kwargs['sanitized_params']['epochs']
+        }
+
         return jsonify(
             {'data': result}
         ), 200
     except Exception as err:
             return error(status=502, detail=f'{err}')
-
-@geoTrainer.route('/model/<model_name>',  strict_slashes=False, methods=['GET', 'POST'])
-@sanitize_parameters
-@validate_prediction_params
-@get_geo_by_hash
-def get_prediction(**kwargs):
-    #app.logger.info(f"id: {model_id}")
-    #function to get prediction from the selected model and region
-    app.logger.info(f'[GET, POSTS]: Recieved {kwargs}')
-    #Set up the loop; we need to set it up here and not in the service because is not thread safe.
-    loop = asyncio.new_event_loop()
-    # activate this if you need to debug async loop
-    #loop.set_debug(True)
-    tests = predict(loop, **kwargs)
-    loop.close()
-    return jsonify({
-        'data': tests
-    }), 200
 
 # Routing
 app.register_blueprint(geoTrainer, url_prefix='/api/v1/geotrainer')
