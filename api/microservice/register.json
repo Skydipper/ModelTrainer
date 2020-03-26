@@ -1,0 +1,37 @@
+{
+	"name": "GeoTrainer",
+	"endpoints": [
+		{
+			"path": "/v1/geotrainer/dataset",
+			"method": "GET",
+			"redirect": {
+				"method": "GET",
+				"path": "/api/v1/geotrainer/dataset"
+			}
+		},
+		{
+			"path": "/v1/geotrainer/composites",
+			"method": "GET",
+			"redirect": {
+				"method": "GET",
+				"path": "/api/v1/geotrainer/composites"
+			}
+		},
+		{
+			"path": "/v1/geotrainer/normalize",
+			"method": "GET",
+			"redirect": {
+				"method": "GET",
+				"path": "/api/v1/geotrainer/normalize"
+			}
+		},
+		{
+			"path": "/v1/geotrainer/jobs",
+			"method": "GET",
+			"redirect": {
+				"method": "GET",
+				"path": "/api/v1/geotrainer/jobs"
+			}
+		}
+	]
+}
