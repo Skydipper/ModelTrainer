@@ -123,6 +123,24 @@ def add_range_bbox(results):
 
 	return new_results
 
+#normalize
+def normalize_ee_images(image, collection, values):
+	
+	Bands = ee_collection_specifics.ee_bands(collection)
+	   
+	# Normalize [0, 1] ee images
+	for i, band in enumerate(Bands):
+		if i == 0:
+			image_new = image.select(band).clamp(values[band+'_min'], values[band+'_max'])\
+								.subtract(values[band+'_min'])\
+								.divide(values[band+'_max']-values[band+'_min'])
+		else:
+			image_new = image_new.addBands(image.select(band).clamp(values[band+'_min'], values[band+'_max'])\
+									.subtract(values[band+'_min'])\
+									.divide(values[band+'_max']-values[band+'_min']))
+			
+	return image_new
+
 class Preprocessing():
     def __init__(self):
         self.EE_TILES = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'
