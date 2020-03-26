@@ -1,44 +1,36 @@
 {
-	"name": "GeoPredictor",
+	"name": "GeoTrainer",
 	"endpoints": [
 		{
-			"path": "/v1/geopredictor/dataset",
+			"path": "/v1/geotrainer/dataset",
 			"method": "GET",
 			"redirect": {
 				"method": "GET",
-				"path": "/api/v1/geopredictor/dataset"
+				"path": "/api/v1/geotrainer/dataset"
 			}
 		},
 		{
-			"path": "/v1/geopredictor/model",
+			"path": "/v1/geotrainer/composites",
 			"method": "GET",
 			"redirect": {
 				"method": "GET",
-				"path": "/api/v1/geopredictor/model"
+				"path": "/api/v1/geotrainer/composites"
 			}
 		},
 		{
-			"path": "/v1/geopredictor/model",
-			"method": "POST",
-			"redirect": {
-				"method": "POST",
-				"path": "/api/v1/geopredictor/model"
-			}
-		},
-		{
-			"path": "/v1/geopredictor/model/:model_name",
-			"method": "POST",
-			"redirect": {
-				"method": "POST",
-				"path": "/api/v1/geopredictor/model/:model_name"
-			}
-		},
-		{
-			"path": "/v1/geopredictor/model/:model_name",
+			"path": "/v1/geotrainer/normalize",
 			"method": "GET",
 			"redirect": {
 				"method": "GET",
-				"path": "/api/v1/geopredictor/model/:model_name"
+				"path": "/api/v1/geotrainer/normalize"
+			}
+		},
+		{
+			"path": "/v1/geotrainer/jobs",
+			"method": "GET",
+			"redirect": {
+				"method": "GET",
+				"path": "/api/v1/geotrainer/jobs"
 			}
 		}
 	]
