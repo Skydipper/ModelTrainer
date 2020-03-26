@@ -12,28 +12,28 @@ from GeoTrainer import ee_collection_specifics
 from GeoTrainer.errors import GeostoreNotFound, error, ModelError, Error
 #geostore connexion class
 class GeostoreService(object):
-	"""."""
+    """."""
 
-	@staticmethod
-	def execute(config):
-		try:
-			response = request_to_microservice(config)
-			if not response or response.get('errors'):
-				raise GeostoreNotFound
-			geostore = response.get('data', None).get('attributes', None)
-			geojson = geostore.get('geojson', None).get('features', None)[0]
+    @staticmethod
+    def execute(config):
+        try:
+            response = request_to_microservice(config)
+            if not response or response.get('errors'):
+                raise GeostoreNotFound
+            geostore = response.get('data', None).get('attributes', None)
+            geojson = geostore.get('geojson', None).get('features', None)[0]
 
-		except Exception as err:
-			return error(status=502, detail=f'{err}')
-		return geojson
+        except Exception as err:
+            return error(status=502, detail=f'{err}')
+        return geojson
 
-	@staticmethod
-	def get(geostore):
-		config = {
-			'uri': '/geostore/' + geostore,
-			'method': 'GET'
-		}
-		return GeostoreService.execute(config)
+    @staticmethod
+    def get(geostore):
+        config = {
+            'uri': '/geostore/' + geostore,
+            'method': 'GET'
+        }
+        return GeostoreService.execute(config)
 
 #database connexion class
 class Database():
@@ -291,23 +291,4 @@ def min_max_values(image, collection, scale, norm_type='global', geostore=None, 
         values = values
         
     return values
-
-#normalize
-def normalize_ee_images(image, collection, values):
-	
-	Bands = ee_collection_specifics.ee_bands(collection)
-	   
-	# Normalize [0, 1] ee images
-	for i, band in enumerate(Bands):
-		if i == 0:
-			image_new = image.select(band).clamp(values[band+'_min'], values[band+'_max'])\
-								.subtract(values[band+'_min'])\
-								.divide(values[band+'_max']-values[band+'_min'])
-		else:
-			image_new = image_new.addBands(image.select(band).clamp(values[band+'_min'], values[band+'_max'])\
-									.subtract(values[band+'_min'])\
-									.divide(values[band+'_max']-values[band+'_min']))
-			
-	return image_new
-
 

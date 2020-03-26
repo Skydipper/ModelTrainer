@@ -51,7 +51,7 @@ OMG
 echo "NOTICE:  finish deleting tables."
 psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
 CREATE TABLE model (
-	id INT PRIMARY KEY,
+	id serial PRIMARY KEY,
 	model_name TEXT,
 	model_type TEXT,
 	model_output TEXT,
@@ -60,7 +60,7 @@ CREATE TABLE model (
 		
 );
 CREATE TABLE model_versions (
-	id INT PRIMARY KEY,
+	id serial PRIMARY KEY,
 	model_id INT,
 	model_architecture TEXT,
 	input_image_id INT,
@@ -76,7 +76,7 @@ CREATE TABLE model_versions (
 	deployed BOOL
 );
 CREATE TABLE image (  
-	id INT PRIMARY KEY,
+	id serial PRIMARY KEY,
 	dataset_id INT,
 	bands_selections TEXT,
 	scale FLOAT,
@@ -87,7 +87,7 @@ CREATE TABLE image (
 	geostore_id TEXT
 );
 CREATE TABLE dataset (
-	id INT PRIMARY KEY,
+	id serial PRIMARY KEY,
 	slug TEXT,
 	name TEXT,
 	bands TEXT,
@@ -113,7 +113,10 @@ done
 # alter datatypes for tables image and dataset to convert band data from text onto an array
 echo "\033[92mSUCCESS:\033[0m  Formatting arrays..."
 psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
-
+SELECT setval('model_id_seq', 1, true);
+SELECT setval('model_versions_id_seq', 4, true);
+SELECT setval('image_id_seq', 3, true);
+SELECT setval('dataset_id_seq', 5, true);
 ALTER TABLE image
 ALTER COLUMN bands_selections TYPE jsonb USING array_to_json(string_to_array(btrim(replace(replace(btrim(bands_selections::TEXT,'"'''''''),'''''',''),'"',''),'[]'), ','));
 
