@@ -26,11 +26,11 @@
 			}
 		},
 		{
-			"path": "/v1/geotrainer/airflow",
+			"path": "/v1/geotrainer/jobs",
 			"method": "GET",
 			"redirect": {
 				"method": "GET",
-				"path": "/api/v1/geotrainer/airflow"
+				"path": "/api/v1/geotrainer/jobs"
 			}
 		}
 	]

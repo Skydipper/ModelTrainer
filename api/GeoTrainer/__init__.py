@@ -124,25 +124,14 @@ def get_normalized_bands(**kwargs):
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoTrainer.route('/airflow/<dataset_names>',  strict_slashes=False, methods=['GET'])
+@geoTrainer.route('/jobs/<dataset_names>',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
 @validate_composites_params
-def get_airflow_dags(**kwargs):
+def create_jobs(**kwargs):
     try:
-        dataset_names = list(map(lambda x: x.strip(), kwargs['sanitized_params']['dataset_names'].split(','))) 
-        init_date = kwargs['sanitized_params']['init_date']
-        end_date = kwargs['sanitized_params']['end_date']
-        geostore = kwargs['sanitized_params']['geojson']
-        norm_type = kwargs['sanitized_params']['norm_type']
-        input_bands = list(map(lambda x: x.strip(), kwargs['sanitized_params']['input_bands'].split(','))) 
-        output_bands = list(map(lambda x: x.strip(), kwargs['sanitized_params']['output_bands'].split(','))) 
-        input_type = kwargs['sanitized_params']['input_type']
-        model_type = kwargs['sanitized_params']['model_type']
-        model_output = kwargs['sanitized_params']['model_output']
-        batch_size = kwargs['sanitized_params']['batch_size']
-        epochs = kwargs['sanitized_params']['epochs']
+        db = Database()
 
-        result = {
+        params = {
             'dataset_names': list(map(lambda x: x.strip(), kwargs['sanitized_params']['dataset_names'].split(','))),
             'init_date': kwargs['sanitized_params']['init_date'],
             'end_date': kwargs['sanitized_params']['end_date'],
@@ -157,8 +146,12 @@ def get_airflow_dags(**kwargs):
             'epochs': kwargs['sanitized_params']['epochs']
         }
 
+        result = db.insert('jobs', [{'status': 'start', 'params': params}])
+
+        logging.info(f'[JOB creation]{result}')
+
         return jsonify(
-            {'data': result}
+            {'data': params}
         ), 200
     except Exception as err:
             return error(status=502, detail=f'{err}')

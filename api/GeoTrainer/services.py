@@ -4,7 +4,7 @@ import asyncio
 import logging
 import os
 import json
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
 import numpy as np
 import pandas as pd
 
@@ -37,20 +37,52 @@ class GeostoreService(object):
 
 #database connexion class
 class Database():
-    DBURL=os.getenv('POSTGRES_CONNECTION')
-    logging.info(f"DB URL: {DBURL}")
-    engine = create_engine(DBURL)
     def __init__(self):
-        self.connection = self.engine.connect()
-        logging.info("DB Instance created")
+        self.DBURL=os.getenv('POSTGRES_CONNECTION', default = None)
+        self.engine = create_engine(self.DBURL)  
+    @property
+    def metadata(self):
+        meta = MetaData(self.engine)
+        meta.reflect()
+        return meta
     
     def Query(self, query):
+        """
+        execute a query
+        """
         logging.debug(f"{query}")
-        fetchQuery = self.connection.execute(f"{query}")
-        output = [{column: value for column, value in rowproxy.items()} for rowproxy in fetchQuery]
-
+        with self.engine.begin() as connection:
+            fetchQuery = connection.execute(f"{query}")
+            output = [{column: value for column, value in rowproxy.items()} for rowproxy in fetchQuery]       
         return output
+    def insert(self, table, values):
+        """
+        inserts in a table
+        """
+        myTable = self.metadata.tables[table]
+        with self.engine.begin() as connection:
+            id = connection.execute(myTable.insert(), values)     
+        return self.Query(f'select * from {table}')
+
+    def update(self, table, values, id):
+        """
+        updates a row in a table
+        """
+        myTable = self.metadata.tables[table]
+        with self.engine.begin() as connection:
+            connection.execute(myTable.update().where(myTable.c.id==id).values(**values))     
+        return self.Query(f'select * from {table}')
+
     
+    def delete(self, table, id):
+        """
+        delete row of a table
+        """
+        myTable = self.metadata.tables[table]
+        with self.engine.begin() as connection:
+            connection.execute(myTable.delete().where(myTable.c.id==id))     
+        return self.Query(f'select * from {table}')
+
     def df_from_query(self, table_name):
         """Read DataFrames from query"""
         queries = {
@@ -67,7 +99,7 @@ class Database():
             return df
         except:
             print("Table doesn't exist in database!") 
-
+            
 #add temporal ranges and bbox to each dataset
 def add_range_bbox(results):
 	new_results = []
