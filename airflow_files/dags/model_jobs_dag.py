@@ -81,10 +81,10 @@ logging.info(f'[MyJobs!!!!]: {jobs}')
 for job in jobs:
     # the child dag name
     #now = datetime.now().strftime("%f")
-    job_task_name = f'model_{job[0]}'
+    job_task_name = f'job_modelSetUp_{job[0]}'
 
     # the DAG creation cannot be in a Sensor or other Operator
-    with DAG(   dag_id=f'test_{job_task_name}', 
+    with DAG(   dag_id=f'{job_task_name}', 
                 description='this is a test',
                 default_args=default_args,
                 is_paused_upon_creation=False,
