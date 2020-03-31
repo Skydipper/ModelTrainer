@@ -10,6 +10,8 @@ import pandas as pd
 
 from GeoTrainer import ee_collection_specifics
 from GeoTrainer.errors import GeostoreNotFound, error, ModelError, Error
+
+from CTRegisterMicroserviceFlask import request_to_microservice
 #geostore connexion class
 class GeostoreService(object):
     """."""
@@ -20,12 +22,10 @@ class GeostoreService(object):
             response = request_to_microservice(config)
             if not response or response.get('errors'):
                 raise GeostoreNotFound
-            geostore = response.get('data', None).get('attributes', None)
-            geojson = geostore.get('geojson', None).get('features', None)[0]
-
+            
+            return response.get('data', None)
         except Exception as err:
             return error(status=502, detail=f'{err}')
-        return geojson
 
     @staticmethod
     def get(geostore):
@@ -33,7 +33,19 @@ class GeostoreService(object):
             'uri': '/geostore/' + geostore,
             'method': 'GET'
         }
-        return GeostoreService.execute(config)
+        response = GeostoreService.execute(config)
+        return response.get('attributes', None).get('geojson', None).get('features', None)[0]
+    
+    @staticmethod
+    def post(geojson):
+        config = {
+            'uri': '/geostore',
+            'method': 'POST',
+            'body': { 'geojson': geojson}
+
+        }
+        response = GeostoreService.execute(config)
+        return response.get('id', None)
 
 #database connexion class
 class Database():
