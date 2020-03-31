@@ -114,6 +114,7 @@ def get_composites(**kwargs):
 @geoTrainer.route('/normalize/<dataset_names>',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
 @validate_composites_params
+@get_geo_by_hash
 def get_normalized_bands(**kwargs):
     try:
         pp = Preprocessing()
