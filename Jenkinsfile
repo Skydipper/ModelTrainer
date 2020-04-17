@@ -60,8 +60,8 @@ node {
             if ((service && service.indexOf("NotFound") > -1) || (forceCompleteDeploy)){
               sh("sed -i -e 's/{name}/${appName}/g' api/k8s/services/*.yaml")
               sh("sed -i -e 's/{name}/${appName}/g' api/k8s/production/*.yaml")
-              sh("kubectl apply -f k8s/services/")
-              sh("kubectl apply -f k8s/production/")
+              sh("kubectl apply -f api/k8s/services/")
+              sh("kubectl apply -f api/k8s/production/")
             }
             sh("kubectl set image deployment ${appName} ${appName}=${imageTag} --record")
           break
