@@ -4,28 +4,28 @@ import asyncio
 import logging
 import os
 import json
+import requests
 from sqlalchemy import create_engine, MetaData
 import numpy as np
 import pandas as pd
 
 from GeoTrainer import ee_collection_specifics
 from GeoTrainer.errors import GeostoreNotFound, error, ModelError, Error
+
+from CTRegisterMicroserviceFlask import request_to_microservice
 #geostore connexion class
 class GeostoreService(object):
     """."""
-
     @staticmethod
     def execute(config):
         try:
             response = request_to_microservice(config)
             if not response or response.get('errors'):
                 raise GeostoreNotFound
-            geostore = response.get('data', None).get('attributes', None)
-            geojson = geostore.get('geojson', None).get('features', None)[0]
-
+            
+            return response.get('data', None)
         except Exception as err:
             return error(status=502, detail=f'{err}')
-        return geojson
 
     @staticmethod
     def get(geostore):
@@ -33,7 +33,19 @@ class GeostoreService(object):
             'uri': '/geostore/' + geostore,
             'method': 'GET'
         }
-        return GeostoreService.execute(config)
+        response = GeostoreService.execute(config)
+        return response.get('attributes', None).get('geojson', None).get('features', None)[0]
+    
+    @staticmethod
+    def post(geojson):
+        config = {
+            'uri': '/geostore',
+            'method': 'POST',
+            'body': { 'geojson': geojson}
+
+        }
+        response = GeostoreService.execute(config)
+        return response.get('id', None)
 
 #database connexion class
 class Database():
@@ -98,7 +110,7 @@ class Database():
                 
             return df
         except:
-            print("Table doesn't exist in database!") 
+            logging.info("Table doesn't exist in database!") 
             
 #add temporal ranges and bbox to each dataset
 def add_range_bbox(results):
@@ -123,9 +135,26 @@ def add_range_bbox(results):
 
 	return new_results
 
+#normalize
+def normalize_ee_images(image, collection, values):
+    Bands = ee_collection_specifics.ee_bands(collection)
+
+    # Normalize [0, 1] ee images
+    for i, band in enumerate(Bands):
+        if i == 0:
+            image_new = image.select(band).clamp(values[band+'_min'], values[band+'_max'])\
+                                .subtract(values[band+'_min'])\
+                                .divide(values[band+'_max']-values[band+'_min'])
+        else:
+            image_new = image_new.addBands(image.select(band).clamp(values[band+'_min'], values[band+'_max'])\
+                                    .subtract(values[band+'_min'])\
+                                    .divide(values[band+'_max']-values[band+'_min']))
+
+    return image_new
+
 class Preprocessing():
     def __init__(self):
-        self.EE_TILES = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'
+        self.EE_TILES = '{tile_fetcher.url_format}'
 
     def composite(self, **kwargs):
         self.dataset_names = kwargs['sanitized_params']['dataset_names']
@@ -151,8 +180,18 @@ class Preprocessing():
         self.slugs = list(map(lambda x: x.strip(), self.dataset_names.split(','))) 
         self.init_date = kwargs['sanitized_params']['init_date']
         self.end_date = kwargs['sanitized_params']['end_date']
-        self.geostore = kwargs['sanitized_params']['geojson']
+        self.geojson = kwargs['sanitized_params']['geojson']
         self.norm_type = kwargs['sanitized_params']['norm_type']
+
+        if 'geostore' in kwargs["sanitized_params"].keys():
+            self.geostore_id = str(kwargs['sanitized_params']['geostore'])
+        # TODO create geostore from geojson
+        #else:
+        #    try:
+        #        self.geostore_id = GeostoreService.post(self.geojson)
+        #    except Exception as err:
+        #        return error(status=502, detail=f'{err}')
+
 
         scales = [ee_collection_specifics.ee_scales(slug) for slug in self.slugs]
         self.scale = max(scales)
@@ -160,7 +199,7 @@ class Preprocessing():
         db = Database()
         self.datasets = db.df_from_query('dataset')
         self.images = db.df_from_query('image')
-        self.images = self.images.astype({'init_date': 'str', 'end_date': 'str'})
+        self.images = self.images.astype({'init_date': 'str', 'end_date': 'str', 'bands_min_max': 'str'})
 
         norm_bands = {}
         for n, slug in enumerate(self.slugs):
@@ -173,15 +212,30 @@ class Preprocessing():
 
             # Get normalization values
             #check if normalization values exists in table
-            if self.norm_type == 'global':
-                condition = self.images[['dataset_id', 'scale', 'init_date', 'end_date', 'norm_type']]\
-                                .isin([dataset_id, self.scale, self.init_date, self.end_date, self.norm_type]).all(axis=1)
+            if self.norm_type == 'geostore':
+                condition = self.images[['dataset_id', 'scale', 'init_date', 'end_date', 'norm_type', 'geostore_id']]\
+                                .isin([dataset_id, self.scale, self.init_date, self.end_date, self.norm_type, self.geostore_id]).all(axis=1)
+
                 if condition.any():
-                    value = self.images[condition]['bands_min_max'].iloc[0]
+                    value = json.loads(self.images[condition]['bands_min_max'].iloc[0])
                 else:
                     value = json.loads(self.get_normalization_values(slug))
+                    result = db.insert('image', [{'dataset_id': int(dataset_id), 'scale': float(self.scale), 
+                    'init_date': self.init_date, 'end_date': self.end_date, 'bands_min_max': json.dumps(value), 'norm_type': self.norm_type, 'geostore_id': self.geostore_id}])
+
+                    logging.info(f'[NORMALIZATION] updated image table: {result}')
             else:
-                value = json.loads(self.get_normalization_values(slug))
+                condition = self.images[['dataset_id', 'scale', 'init_date', 'end_date', 'norm_type']]\
+                                .isin([dataset_id, self.scale, self.init_date, self.end_date, self.norm_type]).all(axis=1)
+
+                if condition.any():
+                    value = json.loads(self.images[condition]['bands_min_max'].iloc[0])
+                else:
+                    value = json.loads(self.get_normalization_values(slug))
+                    result = db.insert('image', [{'dataset_id': int(dataset_id), 'scale': float(self.scale), 
+                    'init_date': self.init_date, 'end_date': self.end_date, 'bands_min_max': json.dumps(value), 'norm_type': self.norm_type}])
+
+                    logging.info(f'[NORMALIZATION] updated image table: {result}')
     
             # Create composite
             image = ee_collection_specifics.Composite(slug)(self.init_date, self.end_date)
@@ -189,7 +243,7 @@ class Preprocessing():
             # Normalize images
             if bool(value): 
                 image = normalize_ee_images(image, slug, value)
-
+                
             urls_dic = {}
             for params in ee_collection_specifics.vizz_params(slug):
                 mapid = image.getMapId(params)
@@ -219,7 +273,7 @@ class Preprocessing():
             # Get min/man values for each band
             if (self.norm_type == 'geostore'):
                 if hasattr(self, 'geostore'):
-                    value = min_max_values(image, slug, self.scale, norm_type=self.norm_type, geostore=self.geostore)
+                    value = min_max_values(image, slug, self.scale, norm_type=self.norm_type, geostore=self.geojson)
                 else:
                     raise ValueError(f"Missing geojson attribute.")
             else:

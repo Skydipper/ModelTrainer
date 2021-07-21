@@ -63,7 +63,7 @@ def setup_ee():
         private_key = os.getenv('EE_PRIVATE_KEY')
         service_email = os.getenv('GEO_PREDICTOR_SERVICE_EMAIL')
         credentials = ee.ServiceAccountCredentials(email=service_email, key_data=private_key)
-        ee.Initialize(credentials=credentials, use_cloud_api=False)
+        ee.Initialize(credentials=credentials)
         ee.data.setDeadline(60000)
         app.logger.info("EE Initialized")
     except Exception as err:
@@ -98,7 +98,7 @@ def get_datasets():
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoTrainer.route('/composites/<dataset_names>',  strict_slashes=False, methods=['GET'])
+@geoTrainer.route('/composites',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
 @validate_composites_params
 def get_composites(**kwargs):
@@ -111,9 +111,10 @@ def get_composites(**kwargs):
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoTrainer.route('/normalize/<dataset_names>',  strict_slashes=False, methods=['GET'])
+@geoTrainer.route('/normalize',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
 @validate_composites_params
+@get_geo_by_hash
 def get_normalized_bands(**kwargs):
     try:
         pp = Preprocessing()
@@ -124,7 +125,7 @@ def get_normalized_bands(**kwargs):
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoTrainer.route('/jobs/<dataset_names>',  strict_slashes=False, methods=['GET'])
+@geoTrainer.route('/jobs',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
 @validate_composites_params
 def create_jobs(**kwargs):
@@ -162,28 +163,26 @@ app.register_blueprint(geoTrainer, url_prefix='/api/v1/geotrainer')
 ################################################################################
 # CT Registering
 ################################################################################
-#PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-#BASE_DIR = os.path.dirname(PROJECT_DIR)
-##
-##
-#def load_config_json(name):
-#    json_path = os.path.abspath(os.path.join(BASE_DIR, 'api/microservice')) + '/' + name + '.json'
-#    with open(json_path) as data_file:
-#        info = json.load(data_file)
-#    return info
-##
-#info = load_config_json('register')
-#swagger = load_config_json('swagger')
-#CTRegisterMicroserviceFlask.register(
-#    app=app,
-#    name='geoPredictor',
-#    info=info,
-#    swagger=swagger,
-#    mode=CTRegisterMicroserviceFlask.AUTOREGISTER_MODE if os.getenv('CT_REGISTER_MODE') and os.getenv(
-#        'CT_REGISTER_MODE') == 'auto' else CTRegisterMicroserviceFlask.NORMAL_MODE,
-#    ct_url=os.getenv('CT_URL'),
-#    url=os.getenv('LOCAL_URL')
-#)
+#
+def load_config_json(name):
+   json_path = os.path.abspath(os.path.join(os.getcwd(), 'microservice')) + '/' + name + '.json'
+   logging.debug(f'[path]: {json_path}')
+   with open(json_path) as data_file:
+       info = json.load(data_file)
+   return info
+#
+info = load_config_json('register')
+swagger = load_config_json('swagger')
+CTRegisterMicroserviceFlask.register(
+   app=app,
+   name='geoPredictor',
+   info=info,
+   swagger=swagger,
+   mode=CTRegisterMicroserviceFlask.AUTOREGISTER_MODE if os.getenv('CT_REGISTER_MODE') and os.getenv(
+       'CT_REGISTER_MODE') == 'auto' else CTRegisterMicroserviceFlask.NORMAL_MODE,
+   ct_url=os.getenv('CT_URL'),
+   url=os.getenv('LOCAL_URL')
+)
 
 ################################################################################
 # Error handler

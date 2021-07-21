@@ -11,8 +11,23 @@ services:
       - "3052:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-      - ./api/data:/data_import 
-
+      - ./api/data:/data_import
+    networks:
+      - geopredictordb-network
+  
+  # cloud-sql-proxy:
+  #   container_name: "geopredictor"
+  #   image: gcr.io/cloudsql-docker/gce-proxy:1.16
+  #   # Port: MySQL (3306), PostgreSQL (5433)
+  #   command: /cloud_sql_proxy -instances=skydipper-196010:europe-west1:skydipper-pg-1=tcp:0.0.0.0:5433 -credential_file=/config
+  #   volumes:
+  #     - ./sqlPrivateKey.json:/config
+  #   ports:
+  #     - "3057:5433"
+  #   networks:
+  #     - geopredictordb-network
+  #   restart: always
+  
   webserver:
     build: .
     container_name: "modeltrainer"
@@ -36,6 +51,8 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
+    networks:
+      - geopredictordb-network
     
   geotrainer:
     container_name: 'geotrainer'
@@ -47,10 +64,10 @@ services:
       - ./api/GeoTrainer:/api/GeoTrainer
     depends_on:
     - postgres
-
-    restart: always
     env_file:
       - .env
+    networks:
+      - geopredictordb-network
     environment:
       PORT: 6767
       HOST: "0.0.0.0"
@@ -63,3 +80,8 @@ services:
       user: postgres
       password: postgres
       psqlPort: 5432
+    restart: always
+
+networks: 
+  geopredictordb-network:
+    driver: bridge

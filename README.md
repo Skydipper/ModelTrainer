@@ -21,8 +21,8 @@ You will  need to have [control tower](https://github.com/Skydipper/control-towe
 Don't forget to populate your `.env` file with the requirements
 
 run `sh start.sh develop`  
-Airflow: [localhost:8080](http://localhost:8080/)  
-API endpoint: [localhost:6868](http://0.0.0.0:6868/)  or if working with CT [localhost:9000/v1/model](http://0.0.0.0:9000/v1/model)
+Airflow: [localhost:3053](http://localhost:3053/)  
+API endpoint: [localhost:3056](http://0.0.0.0:3056/)  or if working with CT [localhost:9000/v1/model](http://0.0.0.0:9000/v1/model)
 enter the container:  
 `docker exec -it modeltrainer /bin/bash`
 
