@@ -8,6 +8,9 @@ metadata:
   name: {name}
 spec:
   revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      name: {name}
   template:
     metadata:
       labels:
