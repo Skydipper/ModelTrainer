@@ -154,7 +154,7 @@ def normalize_ee_images(image, collection, values):
 
 class Preprocessing():
     def __init__(self):
-        self.EE_TILES = 'https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}'
+        self.EE_TILES = '{tile_fetcher.url_format}'
 
     def composite(self, **kwargs):
         self.dataset_names = kwargs['sanitized_params']['dataset_names']
