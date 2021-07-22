@@ -20,7 +20,8 @@ node {
   def tokens = "${env.JOB_NAME}".tokenize('/')
   def appName = tokens[0]
   def dockerUsername = "${DOCKER_USERNAME}"
-  def imageTag = "${dockerUsername}/${appName}:${env.BRANCH_NAME}.${env.BUILD_NUMBER}"
+  def webserverImage = "${dockerUsername}/mt-webserver"
+  def geotrainerImage = "${dockerUsername}/mt-geotrainer"
 
   currentBuild.result = "SUCCESS"
 
@@ -29,23 +30,25 @@ node {
 
   try {
 
-    stage ('Build docker') {
-      sh("docker -H :2375 build -t ${imageTag} .")
-      sh("docker -H :2375 build -t ${dockerUsername}/${appName}:latest .")
+    stage ('Build Docker for Airflow Webserver') {
+      sh("docker -H :2375 build -t ${webserverImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER} .")
+      sh("docker -H :2375 build -t ${webserverImage}:latest .")
     }
 
-    // stage ('Run Tests') {
-    //   sh('docker-compose -H :2375 -f docker-compose-test.yml build')
-    //   sh('docker-compose -H :2375 -f docker-compose-test.yml run --rm test')
-    //   sh('docker-compose -H :2375 -f docker-compose-test.yml stop')
-    // }
+    stage ('Build Docker for Geotrainer') {
+      sh("docker -H :2375 build -t ${geotrainerImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER} .")
+      sh("docker -H :2375 build -t ${geotrainerImage}:latest .")
+    }
 
     stage('Push Docker') {
       withCredentials([usernamePassword(credentialsId: 'Skydipper Docker Hub', usernameVariable: 'DOCKER_HUB_USERNAME', passwordVariable: 'DOCKER_HUB_PASSWORD')]) {
         sh("docker -H :2375 login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}")
-        sh("docker -H :2375 push ${imageTag}")
-        sh("docker -H :2375 push ${dockerUsername}/${appName}:latest")
-        sh("docker -H :2375 rmi ${imageTag}")
+        sh("docker -H :2375 push ${webserverImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER}")
+        sh("docker -H :2375 push ${webserverImage}:latest")
+        sh("docker -H :2375 push ${geotrainerImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER}")
+        sh("docker -H :2375 push ${geotrainerImage}:latest")
+        sh("docker -H :2375 rmi ${webserverImage}")
+        sh("docker -H :2375 rmi ${geotrainerImage}")
       }
     }
 
@@ -58,8 +61,6 @@ node {
             sh("kubectl config use-context gke_${GCLOUD_PROJECT}_${GCLOUD_GCE_ZONE}_${KUBE_PROD_CLUSTER}")
             def service = sh([returnStdout: true, script: "kubectl get deploy ${appName} || echo NotFound"]).trim()
             if ((service && service.indexOf("NotFound") > -1) || (forceCompleteDeploy)){
-              sh("sed -i -e 's/{name}/${appName}/g' api/k8s/services/*.yaml")
-              sh("sed -i -e 's/{name}/${appName}/g' api/k8s/production/*.yaml")
               sh("kubectl apply -f api/k8s/services/")
               sh("kubectl apply -f api/k8s/production/")
             }

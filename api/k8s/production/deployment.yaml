@@ -3,27 +3,22 @@ kind: Deployment
 metadata:
   namespace: default
   labels:
-    name: {name}
+    name: training
     app: validator
-  name: {name}
+  name: training
 spec:
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      name: {name}
+      name: training
   template:
     metadata:
       labels:
-        name: {name}
+        name: training
     spec:
-      tolerations:
-      - key: "type"
-        operator: "Equal"
-        value: "validator"
-        effect: "NoSchedule"
       containers:
-      - name: {name}
-        image: vizzuality/{name}
+      - name: mt-webserver
+        image: skydipper/mt-webserver
         imagePullPolicy: Always
         resources:
           requests:
@@ -31,14 +26,14 @@ spec:
           limits:
             memory: "512Mi"
         args:
-          - start
+          - webserver
         env:
           - name: PORT
-            value: "4506"
+            value: "3053"
           - name: ENVIRONMENT
             value: prod
           - name: LOCAL_URL
-            value: http://{name}.default.svc.cluster.local:4506
+            value: http://mt-webserver.default.svc.cluster.local:3053
           - name: CT_URL
             valueFrom:
                 secretKeyRef:
@@ -76,20 +71,58 @@ spec:
                   key: GEOPREDICTOR_POSTGRESQL_URI
         ports:
           - containerPort: 4506
-      - name: cloudsql-proxy
-        image: gcr.io/cloudsql-docker/gce-proxy:1.14
-        command: ["/cloud_sql_proxy",
-                  "-instances=skydipper-196010:europe-west1:skydipper-pg-1=tcp:5432",
-                  "-credential_file=/secrets/cloudsql/credentials.json"]
-        securityContext:
-          runAsUser: 2  # non-root user
-          allowPrivilegeEscalation: false
-        volumeMounts:
-          - name: cloudsql-instance-credentials
-            mountPath: /secrets/cloudsql
-            readOnly: true
-      volumes:
-        - name: cloudsql-instance-credentials
-          secret:
-            secretName: cloudsql-instance-credentials
+      - name: mt-geotrainer
+        image: skydipper/mt-geotrainer
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "128Mi"
+          limits:
+            memory: "512Mi"
+        args:
+          - start
+        env:
+          - name: PORT
+            value: "6767"
+          - name: ENVIRONMENT
+            value: prod
+          - name: LOCAL_URL
+            value: http://mt-geotrainer.default.svc.cluster.local:6767
+          - name: CT_URL
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: CT_URL
+          - name: CT_TOKEN
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: CT_TOKEN
+          - name: CT_REGISTER_MODE
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: CT_REGISTER_MODE
+          - name: API_VERSION
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: API_VERSION
+          - name: GEO_PREDICTOR_SERVICE_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: mssecrets
+                key: GEO_PREDICTOR_SERVICE_EMAIL
+          - name: EE_PRIVATE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mssecrets
+                key: EE_GEE_TILE_PRIVATE_KEY
+          - name: POSTGRES_CONNECTION
+            valueFrom:
+                secretKeyRef:
+                  name: dbsecrets
+                  key: GEOPREDICTOR_POSTGRESQL_URI
+        ports:
+          - containerPort: 4506
       restartPolicy: Always
