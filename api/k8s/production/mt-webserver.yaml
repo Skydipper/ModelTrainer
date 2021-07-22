@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  labels:
+    name: mt-webserver
+    app: validator
+  name: mt-webserver
+spec:
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      name: mt-webserver
+  template:
+    metadata:
+      labels:
+        name: mt-webserver
+    spec:
+      containers:
+      - name: mt-webserver
+        image: skydipper/mt-webserver
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "128Mi"
+          limits:
+            memory: "512Mi"
+        args:
+          - webserver
+        env:
+          - name: PORT
+            value: "3053"
+          - name: ENVIRONMENT
+            value: prod
+          - name: LOCAL_URL
+            value: http://mt-webserver.default.svc.cluster.local:3053
+          - name: CT_URL
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: CT_URL
+          - name: CT_TOKEN
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: CT_TOKEN
+          - name: CT_REGISTER_MODE
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: CT_REGISTER_MODE
+          - name: API_VERSION
+            valueFrom:
+                secretKeyRef:
+                  name: mssecrets
+                  key: API_VERSION
+          - name: GEO_PREDICTOR_SERVICE_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: mssecrets
+                key: GEO_PREDICTOR_SERVICE_EMAIL
+          - name: EE_PRIVATE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mssecrets
+                key: EE_GEE_TILE_PRIVATE_KEY
+          - name: POSTGRES_CONNECTION
+            valueFrom:
+                secretKeyRef:
+                  name: dbsecrets
+                  key: GEOPREDICTOR_POSTGRESQL_URI
+        ports:
+          - containerPort: 3053
+      restartPolicy: Always

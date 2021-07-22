@@ -18,7 +18,6 @@ node {
 
   // Variables
   def tokens = "${env.JOB_NAME}".tokenize('/')
-  def appName = tokens[0]
   def dockerUsername = "${DOCKER_USERNAME}"
   def webserverImage = "${dockerUsername}/mt-webserver"
   def geotrainerImage = "${dockerUsername}/mt-geotrainer"
@@ -59,12 +58,10 @@ node {
         case "master":
             sh("echo Deploying to PROD cluster")
             sh("kubectl config use-context gke_${GCLOUD_PROJECT}_${GCLOUD_GCE_ZONE}_${KUBE_PROD_CLUSTER}")
-            def service = sh([returnStdout: true, script: "kubectl get deploy ${appName} || echo NotFound"]).trim()
-            if ((service && service.indexOf("NotFound") > -1) || (forceCompleteDeploy)){
-              sh("kubectl apply -f api/k8s/services/")
-              sh("kubectl apply -f api/k8s/production/")
-            }
-            sh("kubectl set image deployment ${appName} ${appName}=${imageTag} --record")
+            sh("kubectl apply -f api/k8s/services/")
+            sh("kubectl apply -f api/k8s/production/")
+            sh("kubectl set image deployment mt-geotrainer mt-geotrainer=${geotrainerImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --record")
+            sh("kubectl set image deployment mt-webserver mt-webserver=${webserverImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER} --record")
           break
 
         // Default behavior?
