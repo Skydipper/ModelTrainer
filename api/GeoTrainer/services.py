@@ -300,7 +300,6 @@ def min_max_values(image, collection, scale, norm_type='global', geostore=None, 
         
         if norm_type == 'geostore':
             try:
-                #geostore = Skydipper.Geometry(id_hash=geostore_id)
                 features = []
                 for feature in geostore.get('geojson').get('features'):
                     features.append(ee.Feature(feature))
