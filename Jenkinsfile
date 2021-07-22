@@ -36,8 +36,8 @@ node {
     }
 
     stage ('Build Docker for Geotrainer') {
-      sh("docker -H :2375 build -t ${geotrainerImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER} .")
-      sh("docker -H :2375 build -t ${geotrainerImage}:latest .")
+      sh("docker -H :2375 build -t ${geotrainerImage}:${env.BRANCH_NAME}.${env.BUILD_NUMBER} ./api")
+      sh("docker -H :2375 build -t ${geotrainerImage}:latest ./api")
     }
 
     stage('Push Docker') {

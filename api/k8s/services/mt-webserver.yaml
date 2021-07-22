@@ -3,10 +3,10 @@ kind: Service
 metadata:
   namespace: default
   labels:
-    name: {name}
-  name: {name}
+    name: mt-webserver
+  name: mt-webserver
 spec:
   ports:
-    - port: 4506
+    - port: 3053
   selector:
-    name: {name}
+    name: mt-webserver
