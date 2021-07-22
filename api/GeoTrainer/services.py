@@ -73,8 +73,8 @@ class Database():
         """
         myTable = self.metadata.tables[table]
         with self.engine.begin() as connection:
-            id = connection.execute(myTable.insert(), values)     
-        return self.Query(f'select * from {table}')
+            results = connection.execute(myTable.insert(), values)
+        return results.inserted_primary_key
 
     def update(self, table, values, id):
         """

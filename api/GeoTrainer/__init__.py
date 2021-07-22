@@ -153,7 +153,9 @@ def create_jobs(**kwargs):
         logging.info(f'[JOB creation]{result}')
 
         return jsonify(
-            {'data': params}
+            {'data': {'job_id':result[0],
+                        'status': 'start', 
+                        'params': params}}
         ), 200
     except Exception as err:
             return error(status=502, detail=f'{err}')
