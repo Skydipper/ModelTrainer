@@ -9,7 +9,7 @@ import ee
 
 from GeoTrainer.services import Database, Preprocessing, add_range_bbox
 from GeoTrainer.middleware import parse_payload, sanitize_parameters, get_geo_by_hash
-from GeoTrainer.validators import validate_prediction_params, validate_composites_params
+from GeoTrainer.validators import validate_normalize_params, validate_composites_params, validate_job_params
 from GeoTrainer.errors import error
 
 
@@ -113,7 +113,7 @@ def get_composites(**kwargs):
 
 @geoTrainer.route('/normalize',  strict_slashes=False, methods=['GET'])
 @sanitize_parameters
-@validate_composites_params
+@validate_normalize_params
 @get_geo_by_hash
 def get_normalized_bands(**kwargs):
     try:
@@ -125,9 +125,10 @@ def get_normalized_bands(**kwargs):
     except Exception as err:
             return error(status=502, detail=f'{err}')
 
-@geoTrainer.route('/jobs',  strict_slashes=False, methods=['GET'])
+@geoTrainer.route('/jobs',  strict_slashes=False, methods=['GET','POST'])
 @sanitize_parameters
-@validate_composites_params
+@parse_payload
+@validate_job_params
 def create_jobs(**kwargs):
     try:
         db = Database()
@@ -152,7 +153,9 @@ def create_jobs(**kwargs):
         logging.info(f'[JOB creation]{result}')
 
         return jsonify(
-            {'data': params}
+            {'data': {'job_id':result[0],
+                        'status': 'start', 
+                        'params': params}}
         ), 200
     except Exception as err:
             return error(status=502, detail=f'{err}')
