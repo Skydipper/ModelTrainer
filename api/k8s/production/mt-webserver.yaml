@@ -68,7 +68,7 @@ spec:
             valueFrom:
                 secretKeyRef:
                   name: dbsecrets
-                  key: GEOPREDICTOR_POSTGRESQL_URI
+                  key: AIRFLOW_POSTGRESQL_URI
         ports:
           - containerPort: 3053
       restartPolicy: Always
