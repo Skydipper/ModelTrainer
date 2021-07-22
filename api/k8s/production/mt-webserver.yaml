@@ -68,8 +68,18 @@ spec:
             valueFrom:
                 secretKeyRef:
                   name: dbsecrets
-                  key: AIRFLOW_POSTGRESQL_URI
+                  key: GEOPREDICTOR_POSTGRESQL_URI
           - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+            valueFrom:
+                secretKeyRef:
+                  name: dbsecrets
+                  key: AIRFLOW_POSTGRESQL_URI
+          - name: AIRFLOW_CONN_GEOPREDICTOR_DB
+            valueFrom:
+                secretKeyRef:
+                  name: dbsecrets
+                  key: GEOPREDICTOR_POSTGRESQL_URI
+          - name: AIRFLOW_CONN_AIRFLOW_DB
             valueFrom:
                 secretKeyRef:
                   name: dbsecrets
