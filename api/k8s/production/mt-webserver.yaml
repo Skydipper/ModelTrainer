@@ -69,6 +69,11 @@ spec:
                 secretKeyRef:
                   name: dbsecrets
                   key: AIRFLOW_POSTGRESQL_URI
+          - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+            valueFrom:
+                secretKeyRef:
+                  name: dbsecrets
+                  key: AIRFLOW_POSTGRESQL_URI
         ports:
           - containerPort: 3053
       restartPolicy: Always
