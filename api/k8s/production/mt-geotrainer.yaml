@@ -16,6 +16,7 @@ spec:
       labels:
         name: mt-geotrainer
     spec:
+      serviceAccountName: k8s-cloud-sql-proxy-service-account
       containers:
       - name: mt-geotrainer
         image: skydipper/mt-geotrainer
@@ -71,4 +72,15 @@ spec:
                   key: GEOPREDICTOR_POSTGRESQL_URI
         ports:
           - containerPort: 6767
+      - name: cloud-sql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.17
+        command:
+          - "/cloud_sql_proxy"
+          - "-instances=skydipper-196010:europe-west1:skydipper-pg-1=tcp:5432"
+        securityContext:
+          runAsNonRoot: true
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu:    "0.1"
       restartPolicy: Always
