@@ -21,7 +21,7 @@ to_lower = lambda v: v.lower()
 to_list = lambda v: json.loads(v)
 
 def validate_composites_params(func):
-    """Water Risk atlas parameters validation"""
+    """composite endpoint params"""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -52,12 +52,17 @@ def validate_composites_params(func):
 
     return wrapper
 
-def validate_prediction_params(func):
+def validate_normalize_params(func):
     """Water Risk atlas parameters validation"""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         validation_schema = {
+            'dataset_names': {
+                'type': 'string',
+                'required': True,
+                'default': None
+            },
             'geostore': {
                 'type': 'string',
                 'excludes': 'geojson',
@@ -90,6 +95,51 @@ def validate_prediction_params(func):
                 return error(status=400, detail=validator.errors)
             
             kwargs['sanitized_params'] = validator.normalized(kwargs['params'])
+            return func(*args, **kwargs)
+        except Exception as err:
+            return error(status=502, detail=f'{err}')
+
+    return wrapper
+
+def validate_job_params(func):
+    """Water Risk atlas parameters validation"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        validation_schema = {
+            'geostore': {
+                'type': 'string',
+                'excludes': 'geojson',
+                'required': True
+            },
+            'geojson': {
+                'type': 'dict',
+                'excludes': 'geostore',
+                'required': True
+            },
+            'model_name': {
+                'type': 'string',
+                'required': True,
+                'default': None
+            },
+            'model_version': {
+                'type': 'string',
+                'required': False,
+                'default': 'last',
+                'coerce': to_lower
+            }
+            
+        }
+        try:
+            logging.debug(f"[VALIDATOR - prediction params]: {kwargs}")
+
+            rArgs = {**kwargs['params'], **kwargs['payload']}
+            validator = Validator(validation_schema, allow_unknown=True, purge_unknown=True)
+            
+            if not validator.validate(rArgs):
+                return error(status=400, detail=validator.errors)
+            
+            kwargs['sanitized_params'] = validator.normalized(rArgs)
             return func(*args, **kwargs)
         except Exception as err:
             return error(status=502, detail=f'{err}')

@@ -32,6 +32,14 @@
 				"method": "GET",
 				"path": "/api/v1/geotrainer/jobs"
 			}
+		},
+		{
+			"path": "/v1/geotrainer/jobs",
+			"method": "POST",
+			"redirect": {
+				"method": "POST",
+				"path": "/api/v1/geotrainer/jobs"
+			}
 		}
 	]
 }

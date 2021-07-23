@@ -57,7 +57,7 @@ default_args = {
 
 def process_new_jobs():
     """
-    Query the accounts table and trigger a set of operator(s) for each individal id
+    Query the accounts table and trigger a set of operator(s) for each individual id
     We will need to change this to a http hook
     """
     # get yesterday's date
