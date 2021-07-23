@@ -3,7 +3,7 @@ MAINTAINER Vizzuality Science Team info@vizzuality.com
 
 # install git
 RUN apt-get update && \
-    apt-get install -y git libpq-dev python-dev
+    apt-get install -y git libpq-dev python-dev postgresql
 
 WORKDIR /api
 
