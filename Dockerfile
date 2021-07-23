@@ -3,7 +3,7 @@ MAINTAINER Vizzuality Science Team info@vizzuality.com
 # install git
 USER root
 RUN apt-get update && \
-    apt-get install -y git libpq-dev python-dev psql
+    apt-get install -y git libpq-dev python-dev postgresql
 USER airflow
 RUN pip install psycopg2-binary
 
