@@ -1,32 +1,54 @@
 #!/bin/sh
-THE_BOSS=airflow
-THE_USER=geopredictor
-THE_DB=geopredictor
+
+###
+# HOW TO USE:
+# - Define POSTGRESQL_ADMIN_PASSWORD (password for the postgres admin user, 'postgres' by default)
+# - Define POSTGRESQL_PASSWORD (password you want for the postgres application user)
+# - Optionally modify the other config vars to meet your needs
+# - Run and profit
+#
+# Config section starts here:
+###
+
+POSTGRESQL_ADMIN_USERNAME=postgres
+POSTGRESQL_ADMIN_PASSWORD=
+POSTGRESQL_USERNAME=geopredictor
+POSTGRESQL_PASSWORD=
+POSTGRESQL_PORT=5432
+POSTGRESQL_DATABASE=geopredictor
 POSTGRESQL_HOST=localhost
-PSQL=/usr/bin/psql
+
 TABLES="model model_versions image dataset"
 
-if psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} -lqt | cut -d \| -f 1 | grep -qw ${THE_DB}
+POSTGRESQL_ROOT_URL="postgresql://$POSTGRESQL_ADMIN_USERNAME:$POSTGRESQL_ADMIN_PASSWORD@$POSTGRESQL_HOST:$POSTGRESQL_PORT"
+POSTGRESQL_DATABASE_URL="$POSTGRESQL_ROOT_URL/$POSTGRESQL_DATABASE"
+
+##
+# End of the config section
+##
+
+if psql ${POSTGRESQL_ROOT_URL} -lqt | cut -d \| -f 1 | grep -qw ${POSTGRESQL_DATABASE}
 then
     # database exists
-    echo 'NOTICE:  Database '${THE_DB}' exists; checking user...'
+    echo 'NOTICE:  Database '${POSTGRESQL_DATABASE}' exists; checking user...'
 else
-    echo 'NOTICE:  Database does not exist; creating' ${THE_DB}' ...'
+    echo 'NOTICE:  Database does not exist; creating' ${POSTGRESQL_DATABASE}' ...'
     ## this will help us create the database
-	psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST}<<OMG
-	CREATE DATABASE ${THE_DB};
+	psql ${POSTGRESQL_ROOT_URL}<<OMG
+	CREATE DATABASE ${POSTGRESQL_DATABASE};
 OMG
 
 fi
-# this if does not work. 
-if psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} -lqt | cut -d \| -f 1 | grep -qw ${THE_USER}
+
+# this if does not work.
+if psql ${POSTGRESQL_ROOT_URL} -lqt | cut -d \| -f 1 | grep -qw ${POSTGRESQL_USERNAME}
 then
     # database exists
-    echo 'NOTICE:  USER '${THE_USER}' exists; Generating tables...'
+    echo 'NOTICE:  USER '${POSTGRESQL_USERNAME}' exists; Generating tables...'
 else
-    echo 'NOTICE: User does not exist; creating '${THE_USER}' ...'
+    echo 'NOTICE: User does not exist; creating '${POSTGRESQL_USERNAME}' ...'
     ## this will help us create the database
-psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
+psql ${POSTGRESQL_DATABASE_URL}<<OMG
 -- Create a group
 CREATE ROLE readaccess;
 
@@ -38,18 +60,18 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO readaccess;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readaccess;
 
 -- Create a final user with password
-CREATE USER ${THE_USER} WITH PASSWORD 'postgres';;
-GRANT readaccess TO ${THE_USER};
+CREATE USER ${POSTGRESQL_USERNAME} WITH PASSWORD '${POSTGRESQL_PASSWORD}';
+GRANT readaccess TO ${POSTGRESQL_USERNAME};
 OMG
 
 fi
 
 ## this will help us create the database model
-psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
+psql ${POSTGRESQL_DATABASE_URL}<<OMG
 DROP TABLE IF EXISTS model, model_versions, image, dataset, jobs;
 OMG
 echo "NOTICE:  finish deleting tables."
-psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
+psql ${POSTGRESQL_DATABASE_URL}<<OMG
 CREATE TABLE model (
 	id serial PRIMARY KEY,
 	model_name TEXT,
@@ -104,7 +126,7 @@ OMG
 echo "NOTICE:  finish creating tables."
 for NAME in ${TABLES}; do
 	echo "TABLE: \033[94m ${NAME}\033[0m"
-	psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB} <<OMG
+	psql ${POSTGRESQL_DATABASE_URL} <<OMG
     DELETE FROM ${NAME}; 
     \COPY ${NAME} FROM ${NAME}.csv quote '^' delimiter ';' CSV header
 OMG
@@ -112,7 +134,7 @@ done
 
 # alter datatypes for tables image and dataset to convert band data from text onto an array
 echo "\033[92mSUCCESS:\033[0m  Formatting arrays..."
-psql -U ${THE_BOSS} -h ${POSTGRESQL_HOST} ${THE_DB}<<OMG
+psql ${POSTGRESQL_DATABASE_URL}<<OMG
 SELECT setval('model_id_seq', 1, true);
 SELECT setval('model_versions_id_seq', 4, true);
 SELECT setval('image_id_seq', 3, true);
