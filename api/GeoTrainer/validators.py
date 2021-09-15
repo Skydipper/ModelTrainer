@@ -193,7 +193,7 @@ def validate_job_params(func):
             logging.debug(f"[VALIDATOR - prediction params]: {kwargs}")
 
             rArgs = {**kwargs['params'], **kwargs['payload']}
-            validator = Validator(validation_schema, allow_unknown=True, purge_unknown=True)
+            validator = Validator(validation_schema, purge_unknown=True)
             
             if not validator.validate(rArgs):
                 return error(status=400, detail=validator.errors)
