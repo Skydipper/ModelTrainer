@@ -118,28 +118,76 @@ def validate_job_params(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         validation_schema = {
+            'dataset_names': {
+                'type': 'string',
+                'required': True
+            },
             'geostore': {
                 'type': 'string',
                 'excludes': 'geojson',
                 'required': True
             },
             'geojson': {
-                'type': 'dict',
+                'type': 'string',
                 'excludes': 'geostore',
                 'required': True
             },
             'model_name': {
                 'type': 'string',
-                'required': True,
-                'default': None
+                'required': True
             },
-            'model_version': {
+            'batch_size': {
                 'type': 'string',
                 'required': False,
                 'default': 'last',
                 'coerce': to_lower
-            }
-            
+            },
+            'epochs': {
+                'type': 'string',
+                'required': False,
+                'default': 'last',
+                'coerce': to_lower
+            },
+            'init_date': {
+                'type': 'string',
+                'required': True,
+            },
+            'end_date':{
+                'type': 'string',
+                'required': True,
+            },
+            'input_bands': {
+                'type': 'string',
+                'required': True,
+            },
+            'input_type': {
+                'type': 'string',
+                'required': True,
+            },
+            'model_architecture': {
+                'type': 'string',
+                'required': True,
+            },
+            'model_description': {
+                'type': 'string',
+                'required': True,
+            },
+            'model_output': {
+                'type': 'string',
+                'required': True,
+            },
+            'model_type': {
+                'type': 'string',
+                'required': True,
+            },
+            'norm_type': {
+                'type': 'string',
+                'required': True,
+            },
+            'output_bands': {
+                'type': 'string',
+                'required': True,
+            }            
         }
         try:
             logging.debug(f"[VALIDATOR - prediction params]: {kwargs}")
