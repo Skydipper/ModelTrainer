@@ -4,6 +4,7 @@ import sys
 import asyncio
 import CTRegisterMicroserviceFlask
 import logging
+import base64
 #from google.auth import app_engine
 import ee 
 
