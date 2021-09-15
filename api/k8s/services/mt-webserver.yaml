@@ -6,7 +6,11 @@ metadata:
     name: mt-webserver
   name: mt-webserver
 spec:
+  type: NodePort
   ports:
-    - port: 3053
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
   selector:
     name: mt-webserver
