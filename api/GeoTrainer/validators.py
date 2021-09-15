@@ -31,6 +31,16 @@ def validate_composites_params(func):
                 'required': True,
                 'default': None
             },
+            'init_date': {
+                'type': 'string',
+                'required': True,
+                'default': None
+            },
+            'end_date':{
+                'type': 'string',
+                'required': True,
+                'default': None
+            },
             'geojson': {
                 'type': 'string',
                 'excludes': 'geostore',
@@ -53,7 +63,7 @@ def validate_composites_params(func):
     return wrapper
 
 def validate_normalize_params(func):
-    """Water Risk atlas parameters validation"""
+    """normalization parameters validation"""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -102,7 +112,7 @@ def validate_normalize_params(func):
     return wrapper
 
 def validate_job_params(func):
-    """Water Risk atlas parameters validation"""
+    """job parameters validation"""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
