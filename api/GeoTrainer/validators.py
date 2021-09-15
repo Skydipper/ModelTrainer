@@ -83,16 +83,17 @@ def validate_normalize_params(func):
                 'excludes': 'geostore',
                 'required': True
             },
-            'model_name': {
+            'init_date': {
                 'type': 'string',
                 'required': True,
-                'default': None
             },
-            'model_version': {
+            'end_date':{
                 'type': 'string',
-                'required': False,
-                'default': 'last',
-                'coerce': to_lower
+                'required': True,
+            },
+            'norm_type': {
+                'type': 'string',
+                'required': True
             }
             
         }
