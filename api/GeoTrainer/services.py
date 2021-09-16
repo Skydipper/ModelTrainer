@@ -22,7 +22,7 @@ class GeostoreService(object):
             response = request_to_microservice(config)
             if not response or response.get('errors'):
                 raise GeostoreNotFound
-            
+            logger.debug(response)
             return response.get('data', None)
         except Exception as err:
             return error(status=502, detail=f'{err}')
@@ -30,7 +30,7 @@ class GeostoreService(object):
     @staticmethod
     def get(geostore):
         config = {
-            'uri': '/geostore/' + geostore,
+            'uri': f'/geostore/{geostore}',
             'method': 'GET'
         }
         response = GeostoreService.execute(config)
@@ -186,11 +186,11 @@ class Preprocessing():
         if 'geostore' in kwargs["sanitized_params"].keys():
             self.geostore_id = str(kwargs['sanitized_params']['geostore'])
         # TODO create geostore from geojson
-        #else:
-        #    try:
-        #        self.geostore_id = GeostoreService.post(self.geojson)
-        #    except Exception as err:
-        #        return error(status=502, detail=f'{err}')
+        else:
+           try:
+               self.geostore_id = GeostoreService.post(self.geojson)
+           except Exception as err:
+               return error(status=502, detail=f'{err}')
 
 
         scales = [ee_collection_specifics.ee_scales(slug) for slug in self.slugs]
@@ -212,7 +212,7 @@ class Preprocessing():
 
             # Get normalization values
             #check if normalization values exists in table
-            if self.norm_type == 'geostore':
+            if self.norm_type == 'geostore' or self.norm_type == 'polygons':
                 condition = self.images[['dataset_id', 'scale', 'init_date', 'end_date', 'norm_type', 'geostore_id']]\
                                 .isin([dataset_id, self.scale, self.init_date, self.end_date, self.norm_type, self.geostore_id]).all(axis=1)
 
@@ -271,7 +271,7 @@ class Preprocessing():
 
         if ee_collection_specifics.normalize(slug):
             # Get min/man values for each band
-            if (self.norm_type == 'geostore'):
+            if (self.norm_type == 'geostore' or self.norm_type == 'polygons'):
                 if hasattr(self, 'geostore'):
                     value = min_max_values(image, slug, self.scale, norm_type=self.norm_type, geostore=self.geojson)
                 else:
@@ -286,21 +286,18 @@ class Preprocessing():
 def min_max_values(image, collection, scale, norm_type='global', geostore=None, values = {}):
     
     normThreshold = ee_collection_specifics.ee_bands_normThreshold(collection)
-    
+    features = []
     if not norm_type == 'custom':
         if norm_type == 'global':
             num = 2
             lon = np.linspace(-180, 180, num)
             lat = np.linspace(-90, 90, num)
-            
-            features = []
             for i in range(len(lon)-1):
                 for j in range(len(lat)-1):
                     features.append(ee.Feature(ee.Geometry.Rectangle(lon[i], lat[j], lon[i+1], lat[j+1])))
         
-        if norm_type == 'geostore':
+        if norm_type == 'geostore' or norm_type == 'polygons':
             try:
-                features = []
                 for feature in geostore.get('geojson').get('features'):
                     features.append(ee.Feature(feature))
                 

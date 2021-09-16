@@ -48,10 +48,7 @@ def validate_composites_params(func):
             }  
         }
         try:
-            logging.debug(f"[VALIDATOR - prediction params]: {kwargs}")
             validator = Validator(validation_schema, allow_unknown=True, purge_unknown=True)
-            logging.info(f"[VALIDATOR - prediction params]: {validator.validate(kwargs['params'])}")
-            
             if not validator.validate(kwargs['params']):
                 return error(status=400, detail=validator.errors)
             
@@ -98,9 +95,7 @@ def validate_normalize_params(func):
             
         }
         try:
-            logging.debug(f"[VALIDATOR - prediction params]: {kwargs}")
             validator = Validator(validation_schema, allow_unknown=True, purge_unknown=True)
-            logging.info(f"[VALIDATOR - prediction params]: {validator.validate(kwargs['params'])}")
             
             if not validator.validate(kwargs['params']):
                 return error(status=400, detail=validator.errors)
@@ -186,11 +181,7 @@ def validate_job_params(func):
             }            
         }
         try:
-            logging.debug(f"[VALIDATOR - prediction params]: {kwargs}")
-
             rArgs = {**kwargs['params'], **kwargs['payload']}
-
-            logging.debug(f"[VALIDATOR - prediction params]: {rArgs}")
             validator = Validator(validation_schema, purge_unknown=True)
             
             if not validator.validate(rArgs):
