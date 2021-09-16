@@ -128,7 +128,7 @@ def validate_job_params(func):
                 'required': True
             },
             'geojson': {
-                'type': 'string',
+                'type': 'dict',
                 'excludes': 'geostore',
                 'required': True
             },
@@ -137,16 +137,12 @@ def validate_job_params(func):
                 'required': True
             },
             'batch_size': {
-                'type': 'string',
+                'type': 'integer',
                 'required': False,
-                'default': 'last',
-                'coerce': to_lower
             },
             'epochs': {
-                'type': 'string',
+                'type': 'integer',
                 'required': False,
-                'default': 'last',
-                'coerce': to_lower
             },
             'init_date': {
                 'type': 'string',
@@ -193,6 +189,8 @@ def validate_job_params(func):
             logging.debug(f"[VALIDATOR - prediction params]: {kwargs}")
 
             rArgs = {**kwargs['params'], **kwargs['payload']}
+
+            logging.debug(f"[VALIDATOR - prediction params]: {rArgs}")
             validator = Validator(validation_schema, purge_unknown=True)
             
             if not validator.validate(rArgs):
