@@ -8,6 +8,7 @@ USER airflow
 RUN pip install psycopg2-binary
 
 COPY ./airflow.cfg /usr/local/airflow/airflow.cfg
+COPY ./airflow_files/dags /usr/local/airflow/dags
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
