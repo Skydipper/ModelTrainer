@@ -214,7 +214,7 @@ class Preprocessing():
 
             # Get normalization values
             #check if normalization values exists in table
-            if self.norm_type == 'geostore' or self.norm_type == 'polygons':
+            if self.norm_type == 'geostore':
                 condition = self.images[['dataset_id', 'scale', 'init_date', 'end_date', 'norm_type', 'geostore_id']]\
                                 .isin([dataset_id, self.scale, self.init_date, self.end_date, self.norm_type, self.geostore_id]).all(axis=1)
 
@@ -273,7 +273,7 @@ class Preprocessing():
 
         if ee_collection_specifics.normalize(slug):
             # Get min/man values for each band
-            if (self.norm_type == 'geostore' or self.norm_type == 'polygons'):
+            if (self.norm_type == 'geostore'):
                 if hasattr(self, 'geostore'):
                     value = min_max_values(image, slug, self.scale, norm_type=self.norm_type, geostore=self.geojson)
                 else:
@@ -298,7 +298,7 @@ def min_max_values(image, collection, scale, norm_type='global', geostore=None, 
                 for j in range(len(lat)-1):
                     features.append(ee.Feature(ee.Geometry.Rectangle(lon[i], lat[j], lon[i+1], lat[j+1])))
         
-        if norm_type == 'geostore' or norm_type == 'polygons':
+        if norm_type == 'geostore':
             try:
                 for feature in geostore.get('geojson').get('features'):
                     features.append(ee.Feature(feature))
