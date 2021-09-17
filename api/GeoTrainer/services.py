@@ -189,7 +189,8 @@ class Preprocessing():
         elif self.norm_type != 'global':
            try:
                # we have an issue connecting with geostore
-               self.geostore_id = GeostoreService.post(self.geojson)
+               #self.geostore_id = GeostoreService.post(self.geojson)
+               self.geostore_id = None
            except Exception as err:
                return error(status=502, detail=f'{err}')
 
